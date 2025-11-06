@@ -4,9 +4,9 @@ WORKDIR /
 
 # requires git to install requirements with git+https
 # Update to debian archive from https://gist.github.com/ishad0w/6ce1eb569c734880200c47923577426a
-RUN echo "deb http://archive.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list \
-    && echo "deb http://archive.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list \
-    && echo "deb http://archive.debian.org/debian buster-backports main contrib non-free" >> /etc/apt/sources.list \
+RUN echo "deb [check-valid-until=no] http://archive.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list \
+    && echo "deb [check-valid-until=no] http://archive.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list \
+    && echo "deb [check-valid-until=no] http://archive.debian.org/debian buster-backports main contrib non-free" >> /etc/apt/sources.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends build-essential git gcc binutils libffi-dev libssl-dev libxml2-dev libxslt1-dev libxslt-dev libjpeg62-turbo-dev zlib1g-dev \
     && python -m venv /opt/venv
@@ -43,17 +43,14 @@ COPY docker/* /octobot/
 # 4. Finish env setup
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Update to debian archive from https://gist.github.com/ishad0w/6ce1eb569c734880200c47923577426a
-RUN echo "deb http://archive.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list \
-    && echo "deb http://archive.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list \
-    && echo "deb http://archive.debian.org/debian buster-backports main contrib non-free" >> /etc/apt/sources.list \
+# Install system dependencies and cloudflared from GitHub releases (avoiding GPG issues with Cloudflare repo)
+RUN echo "deb [check-valid-until=no] http://archive.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list \
+    && echo "deb [check-valid-until=no] http://archive.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list \
+    && echo "deb [check-valid-until=no] http://archive.debian.org/debian buster-backports main contrib non-free" >> /etc/apt/sources.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && mkdir -p /usr/share/keyrings \
-    && chmod 0755 /usr/share/keyrings \
-    && curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null \
-    && echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared buster main' | tee /etc/apt/sources.list.d/cloudflared.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends curl cloudflared libxslt-dev libxcb-xinput0 libjpeg62-turbo-dev zlib1g-dev libblas-dev liblapack-dev libatlas-base-dev libopenjp2-7 libtiff-dev \
+    && apt-get install -y --no-install-recommends curl libxslt-dev libxcb-xinput0 libjpeg62-turbo-dev zlib1g-dev libblas-dev liblapack-dev libatlas-base-dev libopenjp2-7 libtiff-dev \
+    && curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared \
+    && chmod +x /usr/local/bin/cloudflared \
     && rm -rf /var/lib/apt/lists/* \
     && ln -s /opt/venv/bin/OctoBot OctoBot # Make sure we use the virtualenv \
     && chmod +x docker-entrypoint.sh
